@@ -1,0 +1,21 @@
+---
+title: "prediction"
+output: html_document
+date: "2023-01-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exploratory Data Analysis (EDA)
+
+
+```{r}
+# Load the data
+data <- read.csv("insurance_data.csv")
+
+# Get a summary of the data
+str(data)
+```
+
