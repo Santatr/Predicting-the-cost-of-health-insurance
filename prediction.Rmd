@@ -8,14 +8,817 @@ date: "2023-01-02"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Exploratory Data Analysis (EDA)
+#### Import the necessary packages
 
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+library(caret)
+library(e1071)
+library(randomForest)
+library(Metrics)
+library(ggcorrplot)
+library(xgboost)
+library(tidyverse)       
+library(olsrr)      
+library(kernlab)
+```
 
-```{r}
+# Exploring data set
+
+#### Loading data set
+
+```{r message=FALSE, warning=FALSE}
 # Load the data
 data <- read.csv("insurance_data.csv")
 
 # Get a summary of the data
-str(data)
+summary(data)
 ```
 
+#### Cleaning data set
+
+```{r message=FALSE, warning=FALSE}
+# checking if there are missing values 
+sum(is.na(data))
+```
+
+There is no missing values in the data set
+
+#### Visualizing data set
+
+AGE
+
+```{r message=FALSE, warning=FALSE}
+# plotting age
+p_age <- data %>% 
+  ggplot() + aes(x = age) + 
+  geom_bar(fill = "dodgerblue3", color = "black", alpha = 0.6) +   
+  labs(title = 'age', y = 'count') +
+  geom_vline(xintercept = min(data$age), linetype = "dashed", color = "red") +
+  geom_text(x = min(data$age), y = 0, label = min(data$age), vjust = 0, size=12) +
+  geom_vline(xintercept = max(data$age), linetype = "dashed", color = "red") +
+  geom_text(x = max(data$age), y = 0, label = max(data$age), vjust = 0, size=12) +
+  theme_classic() +
+  theme(text=element_text(family="Times"),
+        plot.title = element_text(hjust = 0.5, size=40),
+			  axis.title.x=element_blank(),
+			  axis.title.y= element_text(size=35),
+			  axis.text.x = element_text(size=35),
+			  axis.text.y = element_text(size=35))
+
+# Divide the ages into intervals of 5 years
+# new_data$age <- cut(data$age, breaks = seq(min(data$age)-1, max(data$age)+10, by = 10))
+
+# plotting new age 
+# p_new_age1 <- new_data %>% 
+#   mutate(across(c(age),as.factor)) %>% 
+#   group_by(age) %>% 
+#   summarise(n = n()) %>% 
+#   ggplot() +
+#   aes(x = age, y = n, fill = age) +
+#   geom_col(position = "dodge") +
+#   geom_text(aes(age, n, label = n, group = age), 
+#             hjust = 0.5,
+#             position = position_dodge(width = -1)) +
+#   scale_x_discrete(limits = rev(levels(new_data$age))) +
+#   # guides(fill = "none") + 
+#   labs(title = '2. Age in intervals') +
+#   theme(plot.title = element_text(hjust = 0.5),
+# 			  axis.title.x=element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.ticks.x=element_blank(),
+# 			  axis.title.y=element_blank(),
+#         axis.ticks.y=element_blank())
+
+# label encoding
+# new_data$age <- as.numeric(factor(new_data$age))
+
+# plotting new age 
+# p_new_age2 <- new_data %>% 
+#   mutate(across(c(age),as.factor)) %>% 
+#   group_by(age) %>% 
+#   summarise(n = n()) %>% 
+#   ggplot() +
+#   aes(x = age, y = n, fill = age) +
+#   geom_col(position = "dodge") +
+#   geom_text(aes(age, n, label = n, group = age), hjust = 0.5, position = position_dodge(width = -1)) +
+#   scale_x_discrete(limits = rev(levels(new_data$age))) +
+#   # guides(fill = "none") + 
+#   labs(title = '3. Label encoding') +
+#   theme(plot.title = element_text(hjust = 0.5),
+# 			  axis.title.x=element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.ticks.x=element_blank(),
+# 			  axis.title.y=element_blank(),
+#         axis.ticks.y=element_blank())
+# plots
+# p_age | p_new_age1 | p_new_age2
+p_age
+```
+
+SEX
+
+```{r message=FALSE, warning=FALSE}
+# plotting sex
+p_sex <- data %>% 
+  ggplot() + 
+  aes(x = sex) + 
+  geom_bar(fill = "dodgerblue3", color = "black", alpha = 0.7) +   
+  labs(title = 'sex', y = 'count') +
+  theme_classic() +
+  theme(text=element_text(family="Times"),
+        plot.title = element_text(hjust = 0.5, size=40),
+			  axis.title.x=element_blank(),
+			  axis.title.y= element_text(size=35),
+			  axis.text.x = element_text(size=35),
+			  axis.text.y = element_text(size=35))
+
+p_sex
+```
+
+BMI
+
+```{r message=FALSE, warning=FALSE}
+# plotting bmi
+p_bmi <- data %>% 
+  ggplot() + 
+  aes(x = bmi) + 
+  geom_density(color = "dodgerblue4", fill="dodgerblue3", width = 50, alpha = 0.7) + 
+  geom_vline(xintercept = min(data$bmi), linetype = "dashed", color = "red") +
+  geom_text(x = min(data$bmi), y = 0, label = min(data$bmi), vjust = 0, size = 10) +
+  geom_vline(xintercept = max(data$bmi), linetype = "dashed", color = "red") +
+  geom_text(x = max(data$bmi), y = 0, label = max(data$bmi), vjust = 0, size = 10) +
+  labs(title = 'bmi') +
+  theme_classic() +
+  theme(text=element_text(family="Times"),
+        plot.title = element_text(hjust = 0.5, size=40),
+			  axis.title.x=element_blank(),
+			  axis.title.y= element_text(size=35),
+			  axis.text.x = element_text(size=35),
+			  axis.text.y = element_text(size=35))
+
+p_bmi
+```
+
+CHILDREN
+
+```{r message=FALSE, warning=FALSE}
+# plotting children
+p_children <- data %>% 
+  ggplot() + 
+  aes(x = children) + 
+  geom_bar(fill = "dodgerblue3", color = "black", alpha = 0.7) +   
+  labs(title = 'children', y = 'count') +
+  theme_classic() +
+  theme(text=element_text(family="Times"),
+      plot.title = element_text(hjust = 0.5, size=40),
+		  axis.title.x=element_blank(),
+		  axis.title.y= element_text(size=35),
+		  axis.text.x = element_text(size=35),
+		  axis.text.y = element_text(size=35))
+
+p_children
+```
+
+SMOKER
+
+```{r}
+# plot smoker
+p_smoker <- data %>% 
+  ggplot() + aes(x = smoker) + 
+  geom_bar(fill = "dodgerblue3", color = "black", alpha = 0.7) +   
+  labs(title = 'smoker', y = 'count') +
+  theme_classic() +
+   theme(text=element_text(family="Times"),
+        plot.title = element_text(hjust = 0.5, size=40),
+			  axis.title.x=element_blank(),
+			  axis.title.y= element_text(size=35),
+			  axis.text.x = element_text(size=35),
+			  axis.text.y = element_text(size=35))
+
+p_smoker
+```
+
+REGION
+
+```{r}
+# plotting region
+p_region <- data %>% 
+  ggplot() + 
+  aes(x = region) + 
+  geom_bar(fill = "dodgerblue3", color = "black", alpha = 0.7) +   
+  labs(title = 'region', y = 'count') +
+  coord_flip() +
+  theme_classic() +
+  theme(text=element_text(family="Times"),
+        plot.title = element_text(hjust = 0.5, size=40),
+  		  axis.title.x=element_blank(),
+  		  axis.title.y= element_text(size=35),
+  		  axis.text.x = element_text(size=35),
+  		  axis.text.y = element_text(size=35))
+p_region
+```
+
+CHARGES
+
+```{r message=FALSE, warning=FALSE}
+# plotting bmi
+p_charges <- data %>% 
+  ggplot() + 
+  aes(x = charges) + 
+  geom_density(color = "dodgerblue4", fill="dodgerblue3", width = 50, alpha = 0.7) + 
+  geom_vline(xintercept = min(data$charges), linetype = "dashed", color = "red") +
+  geom_text(x = min(data$charges), y = 0, label = round(min(data$charges),2), vjust = 0, size = 10) +
+  geom_vline(xintercept = max(data$charges), linetype = "dashed", color = "red") +
+  geom_text(x = max(data$charges), y = 0, label = round(max(data$charges),2), vjust = 0, size = 10) +
+  labs(title = 'charges') +
+  theme_classic() +
+  theme(text=element_text(family="Times"),
+        plot.title = element_text(hjust = 0.5, size=40),
+  		  axis.title.x=element_blank(),
+  		  axis.title.y= element_text(size=35),
+  		  axis.text.x = element_text(size=35, angle = 10),
+  		  axis.text.y = element_text(size=35))
+
+p_charges
+```
+
+#### Checking outliers in the columns: "age", "bmi" and "charges"
+
+```{r}
+# Checking Outliers
+data %>% 
+  select(bmi, age, charges) %>% 
+  log() %>% 
+  pivot_longer(c(bmi, age, charges)) %>%
+  ggplot(aes(x=name,y=value,fill=name), alpha = 0.7) +
+  geom_boxplot() +
+  labs(title="Boxplot for age, bmi and charges") +
+  theme_classic() +
+  theme(text=element_text(family="Times"),
+        plot.title = element_text(hjust = 0.5, size=35),
+  		  axis.title.x=element_blank(),
+  		  axis.title.y= element_text(size=35),
+  		  axis.text.x = element_text(size=35),
+  		  axis.text.y = element_text(size=35),
+			  legend.position = "none")
+```
+
+#### Removing outliers for "bmi"
+
+```{r}
+# Removing Outliers (method1)
+quartiles <- quantile(data$bmi, probs=c(.25, .75), na.rm = FALSE)
+IQR <- IQR(data$bmi)
+
+Lower <- quartiles[1] - 1.03 * IQR
+Upper <- quartiles[2] + 2.1 *IQR
+
+data <- subset(data, data$bmi > Lower & data$bmi < Upper)
+ 
+# Removing Outliers (method2)
+# new_data_no_outlier <- new_data[-which(new_data$bmi %in% boxplot.stats(new_data$bmi)$out), ]
+
+# Checking Outliers
+data %>% 
+  select(bmi, age, charges) %>% 
+  log() %>% 
+  pivot_longer(c(bmi, age, charges)) %>%
+  ggplot(aes(x=name,y=value,fill=name), alpha = 0.7) +
+  geom_boxplot() +
+  labs(title="Boxplot for age, bmi and charges") +
+  theme_classic() +
+  theme(text=element_text(family="Times"),
+        plot.title = element_text(hjust = 0.5, size=35),
+  		  axis.title.x=element_blank(),
+  		  axis.title.y= element_text(size=35),
+  		  axis.text.x = element_text(size=35),
+  		  axis.text.y = element_text(size=35),
+			  legend.position = "none")
+```
+
+# Exploring relationships in data set
+
+#### Is there any relation between *charges* and *bmi*?
+
+```{r}
+# plot(data$bmi, data$charges, pch = 1, cex = 1, col = "blue", main = "Charge vs bmi", xlab = "Body Mass Index", ylab = "Insurance charges")
+# abline(lm(data$charges ~ data$bmi))
+
+plot <- data %>% 
+        ggplot(aes(bmi, charges)) +
+        geom_point(color = "dodgerblue3", alpha = 0.3) +
+        geom_smooth(method = "lm", color = "dodgerblue4") +
+        labs(title = 'charges vs bmi', x = "Bmi", y = "Insurance charges") +
+        theme_classic() +
+        theme(text=element_text(family="Times"),
+                plot.title = element_text(hjust = 0.5, size=30),
+        			  axis.title.x= element_text(size=25),
+        			  axis.title.y= element_text(size=25),
+        			  axis.text.x = element_text(size=30),
+        			  axis.text.y = element_text(size=30, angle=60))
+plot
+```
+
+#### Is there any relation between *charges* and *age*?
+
+```{r}
+# plot(data$age, data$charges, pch = 1, cex = 1, col = "blue", main = "Charge vs age", xlab = "Age", ylab = "Insurance charges")
+# abline(lm(data$charges ~ data$age))
+
+plot <- data %>% 
+        mutate(smoker = as.factor(smoker)) %>% 
+        ggplot(aes(age, charges)) +
+        geom_point(color = "dodgerblue3", alpha = 0.3) +
+        geom_smooth(method = "lm", color = "dodgerblue4") +
+        labs(title = 'charges vs age', x = "Age", y = "Insurance charges") +
+        theme_classic() +
+        theme(text=element_text(family="Times"),
+                plot.title = element_text(hjust = 0.5, size=30),
+        			  axis.title.x= element_text(size=25),
+        			  axis.title.y= element_text(size=25),
+        			  axis.text.x = element_text(size=30),
+        			  axis.text.y = element_text(size=30, angle=60))
+plot
+```
+
+#### Is there any relation between *charges* and *smoker*?
+
+```{r}
+# plot(new_data$smoker, new_data$charges, pch = 1, cex = 1, col = "blue", main = "Charge vs smoker", xlab = "Smoker", ylab = "Insurance charges")
+# abline(lm(new_data$charges ~ new_data$smoker))
+
+plot <- data %>% 
+  ggplot(aes(smoker, charges)) +
+  geom_point(color = "dodgerblue3", alpha = 0.3, size = 2) +
+  geom_smooth(method = "lm", color = "dodgerblue4") +
+  labs(title = 'charges vs smoker', x = "Smoker", y = "Insurance charges") +
+  theme_classic() +
+  theme(text=element_text(family="Times"),
+                plot.title = element_text(hjust = 0.5, size=30),
+        			  axis.title.x= element_text(size=25),
+        			  axis.title.y= element_text(size=25),
+        			  axis.text.x = element_text(size=30),
+        			  axis.text.y = element_text(size=30, angle=60))
+plot
+```
+
+```{r}
+plot <- data %>% 
+        mutate(smoker = as.factor(smoker)) %>% 
+          ggplot(aes(age, charges, color = smoker)) +
+          geom_point(alpha = 0.1, size = 2) +
+          geom_smooth(method = "lm", se = FALSE) +
+          scale_color_manual(values = c("dodgerblue", "dodgerblue4")) +
+          labs(title = 'charges vs age vs smoker', x = "Age", y = "Insurance charges") +
+          theme_classic() +
+          theme(text=element_text(family="Times"),
+                plot.title = element_text(hjust = 0.5, size=30),
+        			  axis.title.x= element_text(size=25),
+        			  axis.title.y= element_text(size=25),
+        			  axis.text.x = element_text(size=30),
+        			  axis.text.y = element_text(size=30, angle=60),
+        			  legend.title = element_text(size = 30),
+        			  legend.text = element_text(size = 30),
+        			  legend.position = "right")
+plot
+```
+
+#### Correlation matrix
+
+```{r}
+
+cor_data <- data
+cor_data$sex <- as.numeric(as.factor(cor_data$sex))
+cor_data$smoker <- as.numeric(as.factor(cor_data$smoker))
+cor_data$region <- as.numeric(as.factor(cor_data$region))
+cor_data$age <- as.numeric(cor_data$age)
+cor_data$bmi <- as.numeric(cor_data$bmi)
+
+cormat <-cor(cor_data, method = "pearson")
+
+# Get lower triangle of the correlation matrix
+  get_lower_tri<-function(cormat){
+    cormat[upper.tri(cormat)] <- NA
+    return(cormat)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(cormat){
+    cormat[lower.tri(cormat)]<- NA
+    return(cormat)
+  }
+  
+  upper_tri <- get_upper_tri(round(cormat ,2))
+
+# Melt the correlation matrix
+library(reshape2)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+
+# Heatmap
+ggheatmap <- ggplot(data = melted_cormat, aes(Var2, Var1, fill = value)) +
+    geom_tile(color = "white")+
+    scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Correlation") +
+    theme_void() + 
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+        size = 8, hjust = 1) , axis.text.y = element_text(vjust = 1, 
+        size = 8, hjust = 1)) +
+    coord_fixed() + 
+    geom_text(aes(Var2, Var1, label = value), color = "black", size = 3.5) +
+    labs(title="Correlation matrix") +
+    theme(text=element_text(family="Times"),
+          plot.title = element_text(hjust = 0.5, size=15),
+    		  axis.title.x= element_blank(),
+    		  axis.title.y= element_blank(),
+    		  axis.text.x = element_text(size=13),
+    		  axis.text.y = element_text(size=13),
+          panel.grid.major = element_blank(),
+          panel.border = element_blank(),
+          legend.justification = c(1, 0),
+          legend.position = c(1.5, 1.5),
+          legend.direction = "horizontal")+
+          guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                        title.position = "top", title.hjust = 0.5))
+ggheatmap
+```
+
+#### Statistical significance of these relationships
+
+```{r}
+# Extract the names of the variables
+names <- colnames(cor_data)
+
+# Loop through the variables and compute the p-values
+p_values <- matrix(NA, nrow = length(names), ncol = length(names))
+for (i in 1:length(names)) {
+  for (j in 1:length(names)) {
+    # Skip the diagonal (i.e., the correlation of a variable with itself)
+    if (i == j) {
+      next
+    }
+    # Compute the p-value
+    result <- cor.test(cor_data[, i], cor_data[, j])
+    p_values[i, j] <- round(result$p.value, digits = 2)
+  }
+}
+
+# Print the p-values
+print(p_values)
+```
+
+We can see that there is correlation between the target (charges) and the variables age, smoker and bmi.
+
+# Feature engineering
+
+#### Label encoding of the columns: "sex" and "smoker"
+
+```{r}
+library(superml)
+
+new_data <- data
+
+# create a label encoder object
+encoder = superml::LabelEncoder$new()
+# fitting and transforming the data
+new_data$sex <- encoder$fit_transform(new_data$sex)
+
+# create a label encoder object
+encoder = superml::LabelEncoder$new()
+# fitting and transforming the data
+new_data$smoker <- encoder$fit_transform(new_data$smoker)
+```
+
+#### One-hot encoding of the column: "region"
+
+```{r}
+#define one-hot encoding function
+dummy <- caret::dummyVars(" ~ .", data=new_data)
+#perform one-hot encoding on data frame
+new_data <- data.frame(predict(dummy, newdata=new_data))
+
+# Drop the "country" column
+new_data <- new_data %>% select(-regionsouthwest)
+```
+
+#### Transforming values into intervals and encode the label: "age" and "bmi":
+
+After trying on some models later on, we noticed that we get better result without using standardization.
+
+```{r}
+# # Divide the ages into intervals of 10 years
+# new_data$age <- cut(data$age, breaks = seq(min(data$age)-1, max(data$age)+10, by = 10))
+# # label encoding
+# new_data$age <- as.numeric(factor(new_data$age))
+
+# # Divide the bmis into intervals of 10
+# new_data$bmi <- cut(data$bmi, breaks = seq(min(data$bmi)-1, max(data$bmi)+10, by = 10))
+# # label encoding
+# new_data$bmi <- as.numeric(factor(new_data$bmi))
+```
+
+```{r}
+head(new_data)
+```
+
+#### Splitting the data into train and test set
+
+```{r}
+# Get the index of the "charges" column
+charges_index <- which(names(new_data) == "charges")
+
+# Splitting the dataset into training and test sets 
+set.seed(123)
+train_index <- createDataPartition(new_data$charges, p=0.70, list=FALSE)
+X_train <- new_data[train_index, -charges_index]
+y_train <- new_data[train_index, charges_index]
+X_test <- new_data[-train_index, -charges_index]
+y_test <- new_data[-train_index, charges_index]
+
+# delete indices in the dataframes 
+row.names(X_train) <- NULL
+row.names(X_test) <- NULL
+```
+
+#### Normalization of the data
+
+```{r}
+# Normalize the data using Min-Max scaling
+process <- preProcess(X_train, method='range')
+X_train <- predict(process, X_train)
+process <- preProcess(X_test, method='range')
+X_test <- predict(process, X_test)
+```
+
+#### Standardization of the data
+
+After trying on some models later on, we noticed that we get better result without using standardization.
+
+```{r}
+# process <- preProcess(X_train, method=c("center", "scale"))
+# X_train <- predict(process, X_train)
+# process <- preProcess(X_test, method=c("center", "scale"))
+# X_test <- predict(process, X_test)
+```
+
+```{r}
+head(X_train)
+```
+
+# Metrics
+
+#### Function to test the performance of the regression model
+
+```{r}
+regression_test <- function(pred, y) {
+  # Compute performance metrics
+  rmse <- sqrt(mean((pred - y)^2))
+  #r2 <- cor(pred, y)^2
+  r2 <- 1 - (sum((pred - y)^2)) / (sum((pred - mean(y))^2))
+  mae <- mean(abs(pred - y))
+  # Print the performance metrics
+  print(paste("RMSE      :", rmse))
+  print(paste("R-squared :", r2))
+  print(paste("MAE       :", mae))
+}
+```
+
+#### Function to plot the comparison of the predictions of a model and the true values on the testing data
+
+```{r}
+performance_plot1 <- function(pred, y) {
+  # Create the residuals data that contain the predictions values and the ground truth values for the plotting 
+  residuals <- data.frame(
+    predictions = pred,
+    ground_truth = y
+  )
+  # plot 
+  ggplot(residuals, aes(predictions, ground_truth)) +
+      geom_point(color = "dodgerblue2", alpha = 0.7) +
+      geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "dodgerblue4") +
+      labs(title = 'Predictions vs. True Values', x = "Predictions", y = "True values") +
+      theme_classic() +
+      theme(text=element_text(family="Times"),
+            plot.title = element_text(hjust = 0.5, size=25),
+    			  axis.title.x = element_text(size=20),
+    			  axis.title.y = element_text(size=20),
+    			  axis.text.x = element_text(size=20),
+    			  axis.text.y = element_text(size=20, angle=60))
+}
+
+performance_plot2 <- function(pred, y) {
+  # Create the residuals data that contain the predictions values and the ground truth values for the plotting 
+  residuals <- data.frame(
+    predictions = pred,
+    ground_truth = y
+  )
+  # plot 
+  ggplot(residuals, aes(x = 1:nrow(residuals), y = predictions - ground_truth)) +
+      geom_point(color = "dodgerblue2", alpha = 0.7) +
+      geom_abline(intercept = 0, slope = 0, linetype = "dashed", color = "dodgerblue4") +
+      labs(title = 'Residuals', x = "Index", y = "Error") +
+      theme_classic() +
+      theme(text=element_text(family="Times"),
+            plot.title = element_text(hjust = 0.5, size=25),
+    			  axis.title.x = element_text(size=20),
+    			  axis.title.y = element_text(size=20),
+    			  axis.text.x = element_text(size=20),
+    			  axis.text.y = element_text(size=20, angle=60))
+}
+```
+
+#### 
+
+# Linear models
+
+#### MM1 - Multiple linear model on `smoker`, `age`, and `bmi`
+
+```{r}
+# Fitting MLR model with predictors TV and Radio 
+mm1 <- lm(y_train ~ bmi + smoker + age , data = X_train)
+
+# Take a look on summary of the model
+summary(mm1)
+```
+
+> 1.  The created model is statistically significant with p-value \<\<\< 0.05
+> 2.  From the coefficients section, it is clear that both coefficients (slopes and intercept) are statistically significant since p-value \<\<\< 0.05
+> 3.  This model with `bmi`, `smoker` and `age` as predictors explains approximately **73%** variability of the target variable `charges`.
+> 4.  Residual standard error for the model is 6143.
+
+```{r}
+cat("Performance on Train data:\n")
+# Predict the train set using the best model
+predictions <- predict(mm1, data = X_train)
+# Compute performance metrics
+regression_test(predictions, y_train)
+
+cat("\nPerformance on Test data:\n")
+# Predict the test set using the best model
+predictions <- predict(mm1, newdata = X_test)
+# Compute performance metrics
+regression_test(predictions, y_test)
+
+performance_plot1(predictions, y_test)
+performance_plot2(predictions, y_test)
+```
+
+#### MM2 - Multiple linear model on `smoker`, `age`, `bmi`, `sex`, `children` and `region`
+
+```{r}
+# Fitting MLR model with predictors TV and Radio 
+mm2 <- lm(y_train ~ ., data = X_train)
+
+# Take a look on summary of the model
+summary(mm2)
+```
+
+> 1.  The created model is statistically significant with p-value \<\<\< 0.05
+> 2.  The intercept, bmi, children, smoker, \`age²\` and \`bmi²\` are statistically significant.
+> 3.  This model explains approximately **74%** variability of the target variable `charges`.
+> 4.  Residual standard error for the model is 6081.
+
+```{r}
+cat("Performance on Train data:\n")
+# Predict the train set using the best model
+predictions <- predict(mm2, data = X_train)
+# Compute performance metrics
+regression_test(predictions, y_train)
+
+cat("\nPerformance on Test data:\n")
+# Predict the test set using the best model
+predictions <- predict(mm2, newdata = X_test)
+# Compute performance metrics
+regression_test(predictions, y_test)
+
+performance_plot1(predictions, y_test)
+performance_plot2(predictions, y_test)
+```
+
+# Other machine learning models
+
+#### Generating polynomial features within data set
+
+```{r}
+new_data <- new_data %>%
+  # mutate("age*children" = age * children) %>%
+  mutate("age*bmi" = age * bmi) %>%
+  # mutate("bmi*childrem" = bmi * children) %>%
+  mutate("age²" = age ^ 2) %>%
+  mutate("bmi²" = bmi ^ 2) 
+  # mutate("children²" = children ^ 2)
+```
+
+#### kNN
+
+```{r}
+cat("Performance on Train data:\n")
+# Define the hyperparameter grid
+grid <- expand.grid(k = c(3, 4, 6, 7))
+# Train the model using the train function with the tuneGrid argument
+model <- train(x = X_train, y = y_train, method = 'knn', tuneGrid = grid, trControl = trainControl(method = 'cv', number = 5, search = "grid"))
+# Predict the train set using the best model
+predictions <- predict(model, data = X_train)
+# Compute performance metrics
+regression_test(predictions, y_train)
+
+cat("\nPerformance on Test data:\n")
+# Predict the test set using the best model
+predictions <- predict(model, newdata = X_test)
+# Compute performance metrics
+regression_test(predictions, y_test)
+
+performance_plot1(predictions, y_test)
+performance_plot2(predictions, y_test)
+```
+
+```{r}
+print(model$bestTune)
+```
+
+#### RF
+
+```{r}
+cat("Performance on Train data:\n")
+# Define the hyperparameter grid
+grid <- data.frame(mtry = c(1, 2, 3, 4, 5, 6, 7, 8))
+# Train the model using the train function with the tuneGrid argument
+model <- train(x = X_train, y = y_train, method = 'rf', tuneGrid = grid, trControl = trainControl(method = 'cv', number = 5, search = "grid"))
+# Predict the train set using the best model
+predictions <- predict(model, data = X_train)
+# Compute performance metrics
+regression_test(predictions, y_train)
+
+cat("\nPerformance on Test data:\n")
+# Predict the test set using the best model
+predictions <- predict(model, newdata = X_test)
+# Compute performance metrics
+regression_test(predictions, y_test)
+
+performance_plot1(predictions, y_test)
+performance_plot2(predictions, y_test)
+```
+
+```{r}
+print(model$bestTune)
+```
+
+#### SVR
+
+```{r}
+cat("Performance on Train data:\n")
+# Define the hyperparameter grid
+grid <- data.frame(C = c(0.5, 0.6, 0.7, 0.8, 0.9, 1), sigma = c(0.01, 0.05, 0.1, 0.2, 0.3, 0.4))
+# Train the model using the train function with the tuneGrid argument
+model <- train(x = X_train, y = y_train, method = 'svmRadial', tuneGrid = grid, trControl = trainControl(method = 'cv', number = 5, search = "grid"))
+# Predict the train set using the best model
+predictions <- predict(model, data = X_train)
+# Compute performance metrics
+regression_test(predictions, y_train)
+
+cat("\nPerformance on Test data:\n")
+# Predict the test set using the best model
+predictions <- predict(model, newdata = X_test)
+# Compute performance metrics
+regression_test(predictions, y_test)
+
+performance_plot1(predictions, y_test)
+performance_plot2(predictions, y_test)
+```
+
+```{r}
+print(model$bestTune)
+```
+
+#### XGBoost
+
+```{r}
+cat("Performance on Train data:\n")
+# Define the hyperparameter grid
+grid <- expand.grid(
+  lambda = c(2.2, 2.3, 2.4), 
+  alpha = c(2.5, 2.6, 2.7), 
+  eta = c(0.001, 0.01, 0.1),
+  nrounds = c(12, 13, 15))  
+# Train the model with hyperparameter tuning
+model <- train(x = X_train, y = y_train, method = 'xgbLinear', tuneGrid = grid, trControl = trainControl(method = 'cv', number = 5, search = "grid"))
+# Predict the train set using the best model
+predictions <- predict(model, data = X_train)
+# Compute performance metrics
+regression_test(predictions, y_train)
+
+
+cat("\nPerformance on Test data:\n")
+# Predict the test set using the best model
+predictions <- predict(model, newdata = X_test)
+# Compute performance metrics
+regression_test(predictions, y_test)
+
+performance_plot1(predictions, y_test)
+performance_plot2(predictions, y_test)
+```
+
+```{r}
+print(model$bestTune)
+```
