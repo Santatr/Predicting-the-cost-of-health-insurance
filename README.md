@@ -54,3 +54,6 @@ Health insurance cost prediction involves using statistical techniques and machi
      </tr>
   </tbody>
 </table>
+
+
+[embed]https://github.com/Santatr/Predicting-the-cost-of-health-insurance/blob/main/actuarial_science_project.pdf[/embed]
